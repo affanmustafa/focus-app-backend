@@ -1,0 +1,109 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Users {
+  id        String @id @default(uuid())
+  name      String
+  username  String
+  email     String
+  password  String
+  biography String
+  avatarUrl String
+
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  FocusSession FocusSession[]
+  Achievement  Achievement[]
+  friends      Friendship[]   @relation("FriendRelation")
+  friendOf     Friendship[]   @relation("FriendRelationInverse")
+
+  @@unique([username, email])
+  @@index([username, email])
+  @@map("users")
+}
+
+model UserDeviceTokens {
+  id          String   @id @default(uuid())
+  userId      String
+  deviceToken String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("user_device_tokens")
+}
+
+model DeviceTokens {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique // JWT or session token
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@map("device_tokens")
+}
+
+model FocusSession {
+  id        String    @id @default(uuid())
+  userId    String
+  user      Users     @relation(fields: [userId], references: [id])
+  startTime DateTime
+  endTime   DateTime?
+  duration  Int
+  taskId    String?
+  task      Tasks?    @relation(fields: [taskId], references: [id])
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("focus_sessions")
+}
+
+model Tasks {
+  id          String       @id @default(uuid())
+  name        String
+  description String?
+  completed   Boolean      @default(false)
+  priority    TaskPriority
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  FocusSession FocusSession[]
+}
+
+model Achievement {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  userId      String
+  user        Users    @relation(fields: [userId], references: [id])
+  points      Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Friendship {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  friendId  String
+  user      Users    @relation("FriendRelation", fields: [userId], references: [id])
+  friend    Users    @relation("FriendRelationInverse", fields: [friendId], references: [id])
+  createdAt DateTime @default(now())
+  usersId   String?
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
